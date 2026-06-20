@@ -34,7 +34,7 @@ import { cellOptionsForToken, kExecuteEval } from "./options";
 
 import { CellExecutor, ExtensionHost } from "../../host";
 import { executableLanguages } from "../../host/executors";
-import { isInlineOutputEnabled } from "../../host/hooks";
+import { isInlineOutputEnabled } from "../../host/positron";
 import { Position } from "vscode";
 import { Uri } from "vscode";
 
@@ -60,6 +60,12 @@ export function blockIsExecutable(host: ExtensionHost, token?: Token): token is 
   } else {
     return false;
   }
+}
+
+// extract cell options as execution metadata (returns undefined if no options)
+export function cellMetadataForBlock(token: TokenMath | TokenCodeBlock): Record<string, unknown> | undefined {
+  const options = cellOptionsForToken(token);
+  return Object.keys(options).length > 0 ? options : undefined;
 }
 
 // skip yaml options for execution
@@ -89,18 +95,19 @@ export async function executeInteractive(
   executor: CellExecutor,
   blocks: string[],
   document: TextDocument,
-  ranges?: Range[]
+  ranges?: Range[],
+  metadata?: Record<string, unknown>[]
 ): Promise<void> {
   // If inline output is enabled, the document has a URI, and the executor supports
   // inline execution, use that instead of the standard console execution
   if (isInlineOutputEnabled() &&
-      !document.isUntitled &&
-      ranges &&
-      ranges.length > 0 &&
-      executor.executeInlineCells) {
-    return await executor.executeInlineCells(document.uri, ranges);
+    !document.isUntitled &&
+    ranges &&
+    ranges.length > 0 &&
+    executor.executeInlineCells) {
+    return await executor.executeInlineCells(document.uri, ranges, metadata);
   }
-  return await executor.execute(blocks, !document.isUntitled ? document.uri : undefined);
+  return await executor.execute(blocks, !document.isUntitled ? document.uri : undefined, metadata);
 }
 
 

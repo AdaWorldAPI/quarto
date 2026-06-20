@@ -46,23 +46,21 @@ suite("Quarto basics", function () {
   test("Can open a non-qmd file normally", async function () {
     const { editor, doc } = await openAndShowExamplesOutTextDocument("hello.lua");
 
-    editor.edit((editBuilder) => {
+    await editor.edit((editBuilder) => {
       editBuilder.insert(new vscode.Position(0, 0), 'print("hiyo")\n');
     });
-    doc.save();
+    await doc.save();
 
     await wait(1700); // approximate time to open visual editor, just in case
 
-    assert.equal(vscode.window.activeTextEditor, editor, 'quarto extension interferes with other files opened in VSCode!');
+    assert.strictEqual(
+      vscode.window.activeTextEditor?.document.uri.toString(),
+      doc.uri.toString(),
+      'quarto extension interferes with other files opened in VSCode!'
+    );
   });
 
-  test("Roundtrip doesn't change nested-checked-list.qmd", async function () {
-    const { doc } = await openAndShowExamplesOutTextDocument("nested-checked-list.qmd");
-
-    const { before, after } = await roundtrip(doc);
-
-    assert.equal(before, after);
-  });
+  roundtripSnapshotTest("nested-checked-list.qmd");
 });
 
 /**
